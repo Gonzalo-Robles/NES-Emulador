@@ -1,0 +1,424 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NES HD — Arcade</title>
+<meta name="description" content="Tus clásicos NES, con escalado Full HD y audio mejorado. Cargá tus juegos y jugá desde el navegador.">
+<meta name="theme-color" content="#10121c">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<style>
+:root{--bg:#f2f2ef;--fg:#1c1c1c;--card:#fff;--ac:#c8321e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121212;--fg:#ececec;--card:#1f1f1f}}
+:root[data-theme="dark"]{--bg:#121212;--fg:#ececec;--card:#1f1f1f}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:15px -apple-system,system-ui,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;gap:12px;padding:14px}
+#w{position:relative;width:min(96vw,1100px);aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden}
+canvas{width:100%;height:100%;display:block;object-fit:contain;background:#000}
+#w:fullscreen{width:100vw;height:100vh;border-radius:0;aspect-ratio:auto}
+#w:-webkit-full-screen{width:100vw;height:100vh;border-radius:0}
+.bar label{white-space:nowrap}
+#msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;padding:20px;font-size:16px;line-height:1.5}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;background:var(--card);padding:10px 14px;border-radius:10px}
+button,select,label.b{font:inherit;color:var(--fg);background:var(--bg);border:1px solid #8886;border-radius:8px;padding:6px 12px;cursor:pointer}
+label.b{background:var(--ac);color:#fff;border-color:var(--ac)}
+small{opacity:.7;text-align:center;max-width:720px}
+input[type=range]{width:110px;vertical-align:middle} #audioStatus{font-size:13px;opacity:.75} .audio{max-width:760px}
+
+:root{--bg:#0d1018;--fg:#f0f2fa;--card:#191e2b;--ac:#f14d56;color-scheme:dark}
+body{padding:24px 16px 32px;gap:16px;background:radial-gradient(ellipse at 70% 0%,#23253d 0%,#0d1018 65%)}
+header{width:min(96vw,1100px);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font-weight:850;font-size:24px;letter-spacing:-1px}.brand span{color:#f66b74}.tag{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#aeb8ce}
+#w{border:1px solid #ffffff19;box-shadow:0 20px 70px #0008;border-radius:16px}
+.bar{box-sizing:border-box;width:min(96vw,1100px);justify-content:flex-start;max-width:1100px;background:#181d2bcc;border:1px solid #ffffff12;padding:14px;border-radius:14px;gap:12px}
+button,select,label.b{min-height:40px;background:#222938;border-color:#ffffff1f}button:hover,select:hover{border-color:#f66b7488}button:disabled{opacity:.4;cursor:default}
+label.b,.primary{background:#ee4c59;color:#fff;border:1px solid #ff7a84;font-weight:700}
+button:focus-visible,select:focus-visible,label.b:focus-within{outline:3px solid #98caff;outline-offset:3px}
+#msg{padding:0;display:flex;background:#0e1421;text-align:left;justify-content:flex-start}
+.hero-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.85}
+.hero-shade{position:absolute;inset:0;background:linear-gradient(90deg,#0b101a 0%,#0b101adc 30%,#0b101a18 75%)}
+.hero-copy{position:relative;z-index:1;padding:clamp(20px,5vw,65px);width:56%;box-sizing:border-box}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#f68a93;margin:0 0 18px}
+h1{font-size:clamp(30px,5.5vw,66px);line-height:1.03;letter-spacing:-.045em;margin:0 0 18px}h1 span{color:#ff6c78}
+.hero-copy p{color:#c4cddd;line-height:1.6;font-size:clamp(13px,1.5vw,16px)}
+.hero-copy .primary{padding:13px 23px;margin:10px 0;cursor:pointer;border-radius:10px;font:inherit;font-weight:700}
+.hero-copy .hint{font-size:12px;color:#9aa9c1}.hero-copy #loadError{color:#ffabb1;line-height:1.4}
+#loadError:empty{display:none}#gameLabel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55%;text-align:right;color:#aeb8ce;font-size:13px}
+#pauseNotice{display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:#080d18bb;color:#fff;font-size:28px;pointer-events:none}
+#touch{display:none;justify-content:space-between;align-items:center;touch-action:none;user-select:none}
+.dpad{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(3,40px);gap:3px}.dpad button{padding:0}.touch-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.touch-actions button{min-width:44px;touch-action:none}
+@media(pointer:coarse){#touch{display:flex}}
+@media(max-width:640px){body{padding:12px 8px 24px;gap:12px}.tag{display:none}#w{aspect-ratio:4/3}.hero-copy{width:80%;padding:22px}.hero-shade{background:linear-gradient(90deg,#0b101af5,#0b101ab5 60%,#0b101a30)}.hero-art{object-position:65% center}.hero-copy .eyebrow{margin-bottom:12px;font-size:10px}h1{font-size:32px;margin-bottom:12px}.hero-copy p{margin:8px 0}.hero-copy .primary{padding:10px 15px}.bar{gap:9px;padding:11px}.bar select{max-width:100%;font-size:13px}#gameLabel{max-width:50%;font-size:11px}}
+@media(prefers-reduced-motion:no-preference){button{transition:background .15s,border-color .15s}}
+</style></head><body>
+<header><div class="brand">NES <span>HD</span></div><div class="tag">Clásicos, otra vez.</div><div id="gameLabel">Elegí tu próximo juego</div></header>
+<div id="w"><canvas id="c" tabindex="0" aria-label="Pantalla del emulador NES"></canvas>
+<div id="msg"><img class="hero-art" src="assets/presentacion.webp" alt="Control retro sobre una plataforma arcade con iluminación roja y azul"><div class="hero-shade"></div><div class="hero-copy"><div class="eyebrow">Tu arcade personal</div><h1>Volvé a jugar.<br><span>En grande.</span></h1><p>Tus clásicos con imagen Full HD y audio mejorado. Todo desde el navegador.</p><button class="primary" id="start">Cargar un juego</button><p class="hint">Archivos .nes o .zip · También podés arrastrarlos acá.</p><p id="loadError" role="alert"></p></div></div>
+<div id="pauseNotice" role="status">En pausa · P para continuar</div></div>
+<div class="bar">
+<label class="b">Cargar ROM<input id="f" type="file" accept=".nes,.zip" hidden></label>
+<select id="m" aria-label="Filtro gráfico"><option value="3" selected>Gráficos: HD · bordes suaves</option><option value="4">Gráficos: Suavizado intenso</option><option value="1">Gráficos: Suavizado nítido</option><option value="2">Gráficos: CRT clásico</option><option value="0">Gráficos: Píxel original</option></select>
+<select id="res" aria-label="Resolución de salida"><option value="1080" selected>Full HD · 1920 × 1080</option><option value="720">HD · 1280 × 720</option><option value="auto">Resolución automática</option></select>
+<select id="aspect" aria-label="Proporción de imagen"><option value="4:3" selected>Proporción clásica · 4:3</option><option value="native">Píxeles cuadrados · 256:240</option><option value="wide">Pantalla ancha · estirar 16:9</option></select>
+<label><input id="u" type="checkbox" checked> Sin parpadeo de sprites</label>
+<button id="pause" disabled>Pausar</button><button id="restart" disabled>Reiniciar</button>
+<button id="fs">Pantalla completa</button>
+</div>
+<div class="bar audio">
+<button id="audioOn">Activar audio</button>
+<select id="sound" aria-label="Perfil de audio"><option value="original">Audio: NES original</option><option value="16">Audio: estilo 16 bits · cálido</option><option value="32" selected>Audio: estilo 32 bits · amplio</option></select>
+<label>Volumen <input id="vol" type="range" min="0" max="100" value="70"><output id="volValue">70%</output></label>
+<button id="mute" aria-pressed="false">Silenciar</button><span id="audioStatus" role="status">El audio se activa al cargar un juego</span>
+</div>
+<div class="bar" id="touch" aria-label="Controles táctiles"><div class="dpad"><span></span><button data-pad="16" aria-label="Arriba">▲</button><span></span><button data-pad="64" aria-label="Izquierda">◀</button><span></span><button data-pad="128" aria-label="Derecha">▶</button><span></span><button data-pad="32" aria-label="Abajo">▼</button></div><div class="touch-actions"><button data-pad="4">Select</button><button data-pad="8">Start</button><button data-pad="2">B</button><button data-pad="1">A</button></div></div>
+<small id="videoStatus" role="status"></small>
+<small>El escalado HD suaviza contornos y reduce el aspecto de bloques. Conserva los sprites y escenarios originales; no agrega modelos 3D ni texturas nuevas. En 4:3 aparecen bandas laterales.</small>
+<small>Los perfiles 16/32 bits aplican ecualización y ambiente estéreo a los sonidos originales; no reemplazan la música por instrumentos de SNES o PlayStation.</small>
+<small>Controles: flechas = cruceta · Z = B · X = A · Enter = Start · Shift = Select · P = Pausa. El emulador corre local en tu navegador; el ROM no se sube a ningún lado. Audio de cinco canales NES con procesamiento de alta precisión. Recomendado: ROM NTSC; la temporización PAL no está implementada.</small>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+/* ---------- estado ---------- */
+let prg,chr,chrRam=false,mp=0,mir=0,prgRam=new Uint8Array(8192),ram=new Uint8Array(2048),nt=new Uint8Array(2048),pal=new Uint8Array(32),oam=new Uint8Array(256);
+let A=0,X=0,Y=0,S=0xfd,P=0x24,pc=0,cyc=0,tot=0,nmi=0,pad=0,sh=0,strobe=0,unl=1;
+let bsel=0,br=[0,2,4,5,6,7,0,1],pb=[0,0,0,0],cb=[0,1,2,3,4,5,6,7],iLat=0,iCnt=0,iRel=0,iEn=0,iFlag=0;
+let ctrl=0,mask=0,status=0,oa=0,v=0,t=0,fX=0,w=0,rbuf=0;
+const px=new Uint32Array(256*240),px8=new Uint8Array(px.buffer);
+const RGB=[0x626262,0x001FB2,0x2404C8,0x5200B2,0x730076,0x800024,0x730B00,0x522800,0x244400,0x005700,0x005C00,0x005324,0x003C76,0,0,0,
+0xABABAB,0x0D57FF,0x4B30FF,0x8A13FF,0xBC08D6,0xD21269,0xC72E00,0x9D5400,0x607B00,0x209800,0x00A300,0x009942,0x007DB4,0,0,0,
+0xFFFFFF,0x53AEFF,0x9085FF,0xD365FF,0xFF57FF,0xFF5DCF,0xFF7757,0xFA9E00,0xBDC700,0x7AE700,0x43F611,0x26EF7E,0x2CD5F6,0x4E4E4E,0,0,
+0xFFFFFF,0xB6E1FF,0xCED1FF,0xE9C3FF,0xFFBCFF,0xFFBDF4,0xFFC6C3,0xFFD59A,0xE9E681,0xCEF481,0xB6FB9A,0xA9FAC3,0xA9F0F4,0xB8B8B8,0,0];
+const NC=RGB.map(c=>(255<<24)|((c&255)<<16)|(c&0xff00)|(c>>16));
+/* APU NTSC: pulse x2, triangle, noise and DMC. CPU-clocked synthesis,
+   integrated samples; Web Audio filters and optional stereo ambience.
+   Profiles describe effects, not a change to the ROM's instruments. */
+const CPU_HZ=1789773, LENGTH=[10,254,20,2,40,4,80,6,160,8,60,10,14,12,26,14,12,16,24,18,48,20,96,22,192,24,72,26,16,28,32,30];
+const NOISE_PERIOD=[4,8,16,32,64,96,128,160,202,254,380,508,762,1016,2034,4068];
+const DMC_PERIOD=[428,380,340,320,286,254,226,214,190,160,142,128,106,84,72,54];
+const DUTY=[[0,1,0,0,0,0,0,0],[0,1,1,0,0,0,0,0],[0,1,1,1,1,0,0,0],[1,0,0,1,1,1,1,1]];
+let audio=null, audioNext=0, audioNodes=null, sources=new Set(), muted=false;
+let apu, samples=[], samplePhase=0, mixSum=0, mixCount=0;
+const pulse=()=>({r:0,sweep:0,period:0,timer:0,seq:0,length:0,start:false,env:0,div:0,swDiv:0,swReload:false});
+function resetAPU(){
+ apu={p:[pulse(),pulse()],tri:{r:0,period:0,timer:0,seq:0,length:0,linear:0,reload:false},noise:{r:0,mode:0,period:4,timer:0,lfsr:1,length:0,start:false,env:0,div:0},dmc:{r:0,level:0,address:0xc000,size:1,addr:0xc000,left:0,timer:0,bits:0,shift:0,silent:true,buffer:null,irq:false},enabled:0,clock:0,frame:0,five:false,inhibit:false,irq:false};
+ samples=[];samplePhase=mixSum=mixCount=0;clearAudio();
+}
+function clearAudio(){for(const s of sources){try{s.stop()}catch{}}sources.clear();audioNext=audio?audio.currentTime+.05:0;samples=[]}
+function envClock(c){if(c.start){c.start=false;c.env=15;c.div=c.r&15}else if(c.div)c.div--;else{c.div=c.r&15;if(c.env)c.env--;else if(c.r&32)c.env=15}}
+function quarterAPU(){for(const c of apu.p)envClock(c);envClock(apu.noise);const t=apu.tri;if(t.reload)t.linear=t.r&127;else if(t.linear)t.linear--;if(!(t.r&128))t.reload=false}
+function sweepTarget(c,i){const delta=c.period>>(c.sweep&7);return c.period+((c.sweep&8)?-delta-(i===0?1:0):delta)}
+function halfAPU(){apu.p.forEach((c,i)=>{if(c.length&&!(c.r&32))c.length--;const target=sweepTarget(c,i);if(!c.swDiv&&(c.sweep&128)&&(c.sweep&7)&&c.period>=8&&target<=2047&&target>=0)c.period=target;if(!c.swDiv||c.swReload){c.swDiv=c.sweep>>4&7;c.swReload=false}else c.swDiv--});const t=apu.tri,n=apu.noise;if(t.length&&!(t.r&128))t.length--;if(n.length&&!(n.r&32))n.length--}
+function apuWrite(a,val){
+ if(a>=0x4000&&a<=0x4007){const i=a>>2&1,c=apu.p[i];switch(a&3){case 0:c.r=val;break;case 1:c.sweep=val;c.swReload=true;break;case 2:c.period=c.period&1792|val;break;case 3:c.period=c.period&255|(val&7)<<8;if(apu.enabled&(1<<i))c.length=LENGTH[val>>3];c.seq=0;c.start=true}return}
+ const t=apu.tri,n=apu.noise,d=apu.dmc;
+ switch(a){case 0x4008:t.r=val;break;case 0x400a:t.period=t.period&1792|val;break;case 0x400b:t.period=t.period&255|(val&7)<<8;if(apu.enabled&4)t.length=LENGTH[val>>3];t.reload=true;break;
+ case 0x400c:n.r=val;break;case 0x400e:n.mode=val>>7;n.period=NOISE_PERIOD[val&15];break;case 0x400f:if(apu.enabled&8)n.length=LENGTH[val>>3];n.start=true;break;
+ case 0x4010:d.r=val;if(!(val&128))d.irq=false;break;case 0x4011:d.level=val&127;break;case 0x4012:d.address=0xc000+val*64;break;case 0x4013:d.size=val*16+1;break;
+ case 0x4015:apu.enabled=val&31;apu.p.forEach((c,i)=>{if(!(val&(1<<i)))c.length=0});if(!(val&4))t.length=0;if(!(val&8))n.length=0;if(!(val&16))d.left=0;else if(!d.left){d.addr=d.address;d.left=d.size}d.irq=false;break;
+ case 0x4017:apu.five=!!(val&128);apu.inhibit=!!(val&64);if(apu.inhibit)apu.irq=false;apu.frame=0;if(apu.five){quarterAPU();halfAPU()}break}
+}
+function apuStatus(){const d=apu.dmc;const s=(apu.p[0].length?1:0)|(apu.p[1].length?2:0)|(apu.tri.length?4:0)|(apu.noise.length?8:0)|(d.left?16:0)|(apu.irq?64:0)|(d.irq?128:0);apu.irq=false;return s}
+function apuTick(cycles){for(let k=0;k<cycles;k++){
+ apu.clock++;apu.frame++;
+ const f=apu.frame;
+ if(f===7457||f===22371)quarterAPU();
+ if(f===14913){quarterAPU();halfAPU()}
+ if(!apu.five&&f>=29829){quarterAPU();halfAPU();if(!apu.inhibit)apu.irq=true;apu.frame=0}
+ if(apu.five&&f>=37281){quarterAPU();halfAPU();apu.frame=0}
+ const t=apu.tri,n=apu.noise,d=apu.dmc;
+ if(t.timer<=0){t.timer=t.period;if(t.length&&t.linear&&t.period>1)t.seq=t.seq+1&31}else t.timer--;
+ if(!(apu.clock&1))for(const c of apu.p){if(c.timer<=0){c.timer=c.period;c.seq=c.seq+1&7}else c.timer--}
+ if(n.timer<=0){n.timer=n.period-1;const bit=(n.lfsr^(n.lfsr>>(n.mode?6:1)))&1;n.lfsr=n.lfsr>>1|bit<<14}else n.timer--;
+ if(d.buffer===null&&d.left){d.buffer=rd(d.addr);d.addr=d.addr===0xffff?0x8000:d.addr+1;d.left--;cyc+=4;cycles+=4;if(!d.left){if(d.r&64){d.addr=d.address;d.left=d.size}else if(d.r&128)d.irq=true}}
+ if(d.timer<=0){d.timer=DMC_PERIOD[d.r&15]-1;if(!d.silent){if(d.shift&1){if(d.level<=125)d.level+=2}else if(d.level>=2)d.level-=2}d.shift>>=1;if(--d.bits<=0){d.bits=8;d.silent=d.buffer===null;if(!d.silent){d.shift=d.buffer;d.buffer=null}}}else d.timer--;
+ let p=0;for(let i=0;i<2;i++){const c=apu.p[i];if(c.length&&c.period>=8&&sweepTarget(c,i)<=2047&&DUTY[c.r>>6][c.seq])p+=(c.r&16)?c.r&15:c.env}
+ const tr=t.period>1?(t.seq<16?15-t.seq:t.seq-16):7.5;
+ const no=n.length&&!(n.lfsr&1)?((n.r&16)?n.r&15:n.env):0;
+ const tnd=tr/8227+no/12241+d.level/22638;
+ const mixed=(p?95.88/(8128/p+100):0)+(tnd?159.79/(1/tnd+100):0);
+ mixSum+=mixed;mixCount++;samplePhase+=audio?audio.sampleRate:48000;
+ if(samplePhase>=CPU_HZ){samplePhase-=CPU_HZ;if(audio&&audio.state==='running'&&!document.hidden)samples.push(mixSum/mixCount);mixSum=0;mixCount=0}
+}}
+function audioProfile(){if(!audioNodes)return;const mode=$('#sound').value,c=audio.currentTime,n=audioNodes;
+ n.bass.gain.setTargetAtTime(mode==='original'?0:mode==='16'?2.5:4,c,.03);
+ n.low.frequency.setTargetAtTime(mode==='original'?13500:mode==='16'?10000:14500,c,.03);
+ n.presence.gain.setTargetAtTime(mode==='32'?1.5:0,c,.03);
+ n.wet.gain.setTargetAtTime(mode==='original'?0:mode==='16'?.08:.15,c,.03);
+ n.gain.gain.setTargetAtTime(muted?0:Number($('#vol').value)/100*1.6,c,.02);
+ $('#volValue').textContent=$('#vol').value+'%';
+}
+async function enableAudio(){try{
+ if(!audio){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw Error('Audio no disponible en este navegador');audio=new AC({latencyHint:'interactive'});
+ const high=audio.createBiquadFilter();high.type='highpass';high.frequency.value=40;
+ const bass=audio.createBiquadFilter();bass.type='lowshelf';bass.frequency.value=180;
+ const presence=audio.createBiquadFilter();presence.type='peaking';presence.frequency.value=2600;presence.Q.value=.7;
+ const low=audio.createBiquadFilter();low.type='lowpass';low.Q.value=.707;
+ const gain=audio.createGain(),limiter=audio.createDynamicsCompressor();limiter.threshold.value=-8;limiter.knee.value=6;limiter.ratio.value=6;limiter.attack.value=.003;limiter.release.value=.12;
+ high.connect(bass);bass.connect(presence);presence.connect(low);low.connect(gain);gain.connect(limiter);limiter.connect(audio.destination);
+ const left=audio.createDelay(.2),right=audio.createDelay(.2),wet=audio.createGain(),merge=audio.createChannelMerger(2);left.delayTime.value=.019;right.delayTime.value=.031;low.connect(left);low.connect(right);left.connect(merge,0,0);right.connect(merge,0,1);merge.connect(wet);wet.connect(gain);
+ audioNodes={input:high,bass,presence,low,gain,wet};audioProfile();audioNext=audio.currentTime+.05;
+ }
+ if(audio.state!=='running')await audio.resume();$('#audioStatus').textContent=audio.state==='running'?'Audio activado':'Tocá Activar audio para escuchar';
+ }catch(e){$('#audioStatus').textContent=e.message}}
+function flushAudio(){if(!audio||audio.state!=='running'||!samples.length){samples=[];return}
+ if(audioNext<audio.currentTime+.008)audioNext=audio.currentTime+.03;
+ if(audioNext>audio.currentTime+.18){samples=[];return}
+ const data=Float32Array.from(samples);samples=[];const b=audio.createBuffer(1,data.length,audio.sampleRate);b.copyToChannel(data,0);const s=audio.createBufferSource();s.buffer=b;s.connect(audioNodes.input);sources.add(s);s.onended=()=>{sources.delete(s);s.disconnect()};s.start(audioNext);audioNext+=b.duration;
+}
+resetAPU();
+
+/* ---------- mapper ---------- */
+function sync(){const n=prg.length>>13;
+ if(mp==0){pb=n>2?[0,1,2,3]:[0,1,0,1];cb=[0,1,2,3,4,5,6,7];return}
+ const pm=bsel&64;pb=[pm?n-2:br[6],br[7],pm?br[6]:n-2,n-1];
+ const r=[br[0]&254,br[0]|1,br[1]&254,br[1]|1,br[2],br[3],br[4],br[5]];
+ cb=bsel&128?[r[4],r[5],r[6],r[7],r[0],r[1],r[2],r[3]]:r}
+function mm(a,val){switch(a&0xe001){
+ case 0x8000:bsel=val;sync();break;case 0x8001:br[bsel&7]=val;sync();break;
+ case 0xa000:mir=val&1;break;case 0xc000:iLat=val;break;case 0xc001:iCnt=0;iRel=1;break;
+ case 0xe000:iEn=0;iFlag=0;break;case 0xe001:iEn=1}}
+function clkIrq(){if(iCnt==0||iRel){iCnt=iLat;iRel=0}else iCnt--;if(iCnt==0&&iEn)iFlag=1}
+/* ---------- PPU ---------- */
+const chrR=a=>{a&=0x1fff;return chr[((cb[a>>10]<<10)|(a&1023))%chr.length]};
+const ntI=a=>((mir?[0,0,1,1]:[0,1,0,1])[a>>10&3]<<10)|(a&1023);
+function ppuRead(a){a&=0x3fff;if(a<0x2000)return chrR(a);if(a<0x3f00)return nt[ntI(a)];let i=a&31;if((i&19)==16)i&=15;return pal[i]}
+function ppuWrite(a,val){a&=0x3fff;if(a<0x2000){if(chrRam)chr[a]=val}else if(a<0x3f00)nt[ntI(a)]=val;else{let i=a&31;if((i&19)==16)i&=15;pal[i]=val&63}}
+function pr(r){let o;switch(r){
+ case 2:o=status;status&=~0x80;w=0;return o;
+ case 4:return oam[oa];
+ case 7:if((v&0x3fff)>=0x3f00)o=ppuRead(v);else{o=rbuf;}rbuf=ppuRead((v&0x3fff)>=0x3f00?v-0x1000:v);v=v+(ctrl&4?32:1)&0x7fff;return o}
+ return 0}
+function pw(r,val){switch(r){
+ case 0:if(!(ctrl&128)&&val&128&&status&128)nmi=1;ctrl=val;t=t&~0xc00|(val&3)<<10;break;
+ case 1:mask=val;break;case 3:oa=val;break;case 4:oam[oa]=val;oa=oa+1&255;break;
+ case 5:if(!w){t=t&~31|val>>3;fX=val&7}else t=t&~0x73e0|(val&7)<<12|(val&0xf8)<<2;w^=1;break;
+ case 6:if(!w)t=t&0xff|(val&0x3f)<<8;else{t=t&0xff00|val;v=t}w^=1;break;
+ case 7:ppuWrite(v,val);v=v+(ctrl&4?32:1)&0x7fff}}
+const bgI=new Uint8Array(256),spI=new Uint8Array(256),spP=new Uint8Array(256);
+function render(y){
+ const bgOn=mask&8,spOn=mask&16,o=y*256;
+ if(!(bgOn||spOn)){const c=NC[pal[0]];for(let x=0;x<256;x++)px[o+x]=c;return}
+ bgI.fill(0);spI.fill(0);
+ if(bgOn){let lv=v;const base=(ctrl&16)<<8,fy=lv>>12&7;
+  for(let tx=0;tx<33;tx++){
+   const id=ppuRead(0x2000|lv&0xfff),at=ppuRead(0x23c0|lv&0xc00|lv>>4&0x38|lv>>2&7),
+   pl=at>>((lv>>4&4)|(lv&2))&3,ad=base+id*16+fy,lo=ppuRead(ad),hi=ppuRead(ad+8);
+   for(let i=0;i<8;i++){const x=tx*8+i-fX;if(x<0||x>255||(x<8&&!(mask&2)))continue;
+    const c=(lo>>(7-i)&1)|(hi>>(7-i)&1)<<1;bgI[x]=c?c|pl<<2:0}
+   if((lv&31)==31){lv&=~31;lv^=0x400}else lv++}}
+ if(spOn){const h=ctrl&32?16:8,sb=(ctrl&8)<<9,L=[];
+  for(let i=0;i<64;i++){const r=y-oam[i*4]-1;if(r>=0&&r<h)L.push(i)}
+  if(L.length>8&&!unl)L.length=8;else if(L.length>8&&unl){status|=0}
+  for(let k=L.length-1;k>=0;k--){const i=L[k],tl=oam[i*4+1],at=oam[i*4+2],sx=oam[i*4+3];let r=y-oam[i*4]-1;if(at&128)r=h-1-r;
+   const ad=h==16?((tl&1)<<12)+(((tl&254)+(r>>3))<<4)+(r&7):sb+tl*16+r,lo=ppuRead(ad),hi=ppuRead(ad+8);
+   for(let j=0;j<8;j++){const b=at&64?j:7-j,c=(lo>>b&1)|(hi>>b&1)<<1,x=sx+j;
+    if(!c||x>255||(x<8&&!(mask&4)))continue;
+    if(i==0&&bgI[x]&&x<255&&bgOn)status|=0x40;
+    spI[x]=16+((at&3)<<2)+c;spP[x]=at>>5&1}}}
+ for(let x=0;x<256;x++){const b=bgI[x],s=spI[x];px[o+x]=NC[pal[s&&(!b||!spP[x])?s:b]]}
+ if((v&0x7000)!=0x7000)v+=0x1000;else{v&=~0x7000;let yy=(v&0x3e0)>>5;if(yy==29){yy=0;v^=0x800}else if(yy==31)yy=0;else yy++;v=v&~0x3e0|yy<<5}
+ v=v&~0x41f|t&0x41f}
+/* ---------- bus ---------- */
+function rd(a){a&=65535;if(a<0x2000)return ram[a&2047];if(a<0x4000)return pr(a&7);
+ if(a==0x4015)return apuStatus();
+ if(a==0x4016){if(strobe)return (pad&1)|0x40;const r=sh&1;sh=sh>>1|128;return r|0x40}
+ if(a>=0x8000)return prg[(pb[a>>13&3]%(prg.length>>13)<<13)|(a&0x1fff)];
+ if(a>=0x6000)return prgRam[a&0x1fff];return 0}
+function wr(a,val){a&=65535;val&=255;
+ if(a<0x2000)ram[a&2047]=val;else if(a<0x4000)pw(a&7,val);
+ else if(a==0x4014){const b=val<<8;for(let i=0;i<256;i++)oam[oa+i&255]=rd(b+i);cyc+=513}
+ else if(a==0x4016){strobe=val&1;if(strobe)sh=pad}
+ else if((a>=0x4000&&a<=0x4013)||a==0x4015||a==0x4017)apuWrite(a,val);
+ else if(a>=0x8000){if(mp==4)mm(a,val)}else if(a>=0x6000)prgRam[a&0x1fff]=val}
+/* ---------- CPU 6502 ---------- */
+const nz=r=>{P=P&0x7d|r&128|(r?0:2);return r};
+const push=r=>{ram[0x100|S]=r;S=S-1&255},pull=()=>{S=S+1&255;return ram[0x100|S]};
+function intr(vec,b){push(pc>>8&255);push(pc&255);push(P&~16|32|b);P|=4;pc=rd(vec)|rd(vec+1)<<8;cyc+=7}
+function adc(m){const r=A+m+(P&1);P=P&0xbe|(r>255?1:0)|(~(A^m)&(A^r)&0x80?64:0);A=nz(r&255)}
+function cmp(r,m){const d=r-m&255;P=P&0x7c|(r>=m?1:0)|(r==m?2:0)|d&128}
+function ea(m){let a;switch(m){
+ case 0:return pc++;case 1:return rd(pc++);case 2:return rd(pc++)+X&255;case 8:return rd(pc++)+Y&255;
+ case 3:a=rd(pc)|rd(pc+1)<<8;pc+=2;return a;
+ case 4:a=rd(pc)|rd(pc+1)<<8;pc+=2;cyc+=(a&255)+X>255?1:0;return a+X&65535;
+ case 5:a=rd(pc)|rd(pc+1)<<8;pc+=2;cyc+=(a&255)+Y>255?1:0;return a+Y&65535;
+ case 6:a=rd(pc++)+X&255;return rd(a)|rd(a+1&255)<<8;
+ case 7:a=rd(pc++);a=rd(a)|rd(a+1&255)<<8;cyc+=(a&255)+Y>255?1:0;return a+Y&65535}}
+const XC=[0,1,2,2,2,2,4,3,2];
+function rmw(a,val){let r;switch(a){
+ case 0:r=val<<1&255;P=P&~1|val>>7;break;case 1:r=(val<<1|P&1)&255;P=P&~1|val>>7;break;
+ case 2:r=val>>1;P=P&~1|val&1;break;case 3:r=val>>1|(P&1)<<7;P=P&~1|val&1;break;
+ case 6:r=val-1&255;break;default:r=val+1&255}return nz(r)}
+function grp(op){const a=op>>5,b=op>>2&7,c=op&3;let m,ad,val;
+ if(c==1){m=[6,1,0,3,7,2,5,4][b];ad=ea(m);cyc+=2+XC[m];
+  if(a==4){if(m>3&&m!=6)cyc++;wr(ad,A);return}
+  val=rd(ad);switch(a){case 0:A=nz(A|val);break;case 1:A=nz(A&val);break;case 2:A=nz(A^val);break;
+   case 3:adc(val);break;case 5:A=nz(val);break;case 6:cmp(A,val);break;case 7:adc(val^255)}return}
+ if(c==2){if(b==2){A=rmw(a,A);cyc+=2;return}
+  m=[0,1,0,3,0,(a==4||a==5)?8:2,0,a==5?5:4][b];ad=ea(m);cyc+=2+XC[m];
+  if(a==4){wr(ad,X);return}if(a==5){X=nz(rd(ad));return}
+  val=rd(ad);wr(ad,rmw(a,val));cyc+=2;return}
+ if(c==0){m=[0,1,0,3,0,2,0,4][b];ad=ea(m);cyc+=2+XC[m];
+  switch(a){case 1:val=rd(ad);P=P&0x3d|val&0xc0|(A&val?0:2);break;case 4:wr(ad,Y);break;
+   case 5:Y=nz(rd(ad));break;case 6:cmp(Y,rd(ad));break;case 7:cmp(X,rd(ad))}return}
+ cyc+=2}
+function step(){
+ if(nmi){nmi=0;return intr(0xfffa,0)}
+ if((iFlag||apu.irq||apu.dmc.irq)&&!(P&4))return intr(0xfffe,0);
+ const op=rd(pc++);let tt;
+ if((op&31)==16){const f=[128,64,1,2][op>>6],a=op>>5&1;let o=rd(pc++);o=o<<24>>24;cyc+=2;
+  if((P&f?1:0)==a){cyc++;tt=pc+o;cyc+=((tt^pc)&0xff00)?1:0;pc=tt&65535}return}
+ switch(op){
+ case 0x00:pc++;return intr(0xfffe,16);
+ case 0x20:tt=pc+1;push(tt>>8&255);push(tt&255);pc=rd(pc)|rd(pc+1)<<8;cyc+=6;return;
+ case 0x40:P=pull()&~16|32;pc=pull();pc|=pull()<<8;cyc+=6;return;
+ case 0x60:pc=pull();pc|=pull()<<8;pc++;cyc+=6;return;
+ case 0x08:push(P|48);cyc+=3;return;
+ case 0x28:P=pull()&~16|32;cyc+=4;return;
+ case 0x48:push(A);cyc+=3;return;
+ case 0x68:A=nz(pull());cyc+=4;return;
+ case 0x4c:pc=rd(pc)|rd(pc+1)<<8;cyc+=3;return;
+ case 0x6c:tt=rd(pc)|rd(pc+1)<<8;pc=rd(tt)|rd(tt&0xff00|tt+1&255)<<8;cyc+=5;return;
+ case 0x88:Y=nz(Y-1&255);break;case 0xa8:Y=nz(A);Y=A;break;case 0xc8:Y=nz(Y+1&255);break;case 0xe8:X=nz(X+1&255);break;
+ case 0x18:P&=~1;break;case 0x38:P|=1;break;case 0x58:P&=~4;break;case 0x78:P|=4;break;
+ case 0x98:A=nz(Y);break;case 0xb8:P&=~64;break;case 0xd8:P&=~8;break;case 0xf8:P|=8;break;
+ case 0x8a:A=nz(X);break;case 0x9a:S=X;break;case 0xaa:X=nz(A);break;case 0xba:X=nz(S);break;
+ case 0xca:X=nz(X-1&255);break;case 0xea:break;
+ default:return grp(op)}
+ cyc+=2}
+/* ---------- frame ---------- */
+function frame(){
+ for(let y=0;y<262;y++){
+  const rend=mask&24;
+  if(y<240)render(y);
+  if(y==241){status|=0x80;if(ctrl&128)nmi=1}
+  if(y==261){status&=0x1f;if(rend)v=v&~0x7be0|t&0x7be0}
+  if((y<240||y==261)&&rend)clkIrq();
+  tot+=341/3;while(cyc<tot){const before=cyc;step();apuTick(cyc-before)}}
+ tot-=cyc;cyc=0;flushAudio()}
+let loadedROM=null,paused=false;
+/* ---------- carga ---------- */
+async function getNes(b){
+ if(b.byteLength<4)throw Error('El archivo está vacío o incompleto');
+ const d=new DataView(b);if(d.getUint32(0,true)!==0x04034b50)return b;
+ // Read the central directory, so folders and ZIP data descriptors work.
+ let end=-1;for(let i=b.byteLength-22;i>=Math.max(0,b.byteLength-65557);i--)if(d.getUint32(i,true)===0x06054b50){end=i;break}
+ if(end<0)throw Error('ZIP incompleto');
+ if(d.getUint16(end+4,true)||d.getUint16(end+6,true))throw Error('ZIP dividido no compatible');
+ const total=d.getUint16(end+10,true);let pos=d.getUint32(end+16,true);
+ for(let i=0;i<total;i++){
+  if(pos+46>b.byteLength||d.getUint32(pos,true)!==0x02014b50)throw Error('Directorio ZIP inválido');
+  const flags=d.getUint16(pos+8,true),method=d.getUint16(pos+10,true),size=d.getUint32(pos+20,true),raw=d.getUint32(pos+24,true),n=d.getUint16(pos+28,true),extra=d.getUint16(pos+30,true),comment=d.getUint16(pos+32,true),offset=d.getUint32(pos+42,true);
+  if(pos+46+n+extra+comment>b.byteLength)throw Error('ZIP incompleto');
+  const name=new TextDecoder().decode(new Uint8Array(b,pos+46,n));pos+=46+n+extra+comment;
+  if(!/\.nes$/i.test(name)||name.startsWith('__MACOSX/'))continue;
+  if(flags&1)throw Error('El ZIP tiene contraseña; descomprimilo primero');
+  if(raw>16*1024*1024)throw Error('La ROM supera el tamaño admitido');
+  if(offset+30>b.byteLength||d.getUint32(offset,true)!==0x04034b50)throw Error('Entrada ZIP inválida');
+  const start=offset+30+d.getUint16(offset+26,true)+d.getUint16(offset+28,true);if(start+size>b.byteLength)throw Error('ZIP truncado');
+  const bytes=b.slice(start,start+size);if(method===0)return bytes;
+  if(method!==8||!window.DecompressionStream)throw Error('Descomprimí el ZIP y cargá el archivo .nes');
+  let stream;try{stream=new DecompressionStream('deflate-raw')}catch{throw Error('Este navegador necesita que descomprimas el ZIP primero')}
+  const result=await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer();if(result.byteLength!==raw)throw Error('La ROM del ZIP está incompleta');return result;
+ }
+ throw Error('No se encontró un archivo .nes dentro del ZIP');
+}
+function boot(buf){const d=new Uint8Array(buf);
+ if(d.length<16||d[0]!=78||d[1]!=69||d[2]!=83||d[3]!=26)throw new Error("No es un archivo .nes válido");
+ if((d[7]&12)===8)throw Error('Formato NES 2.0 no compatible; usá una ROM iNES');
+ if(d[6]&8)throw Error('Mirroring de cuatro pantallas no compatible');
+ if(!d[4]||d.length<16+(d[6]&4?512:0)+d[4]*16384+d[5]*8192)throw Error('La ROM está incompleta');
+ mp=(d[7]&0xf0)|(d[6]>>4);if(mp!=0&&mp!=4)throw new Error("Mapper "+mp+" no soportado (solo 0 y 4)");
+ let o=16+(d[6]&4?512:0);prg=d.slice(o,o+d[4]*16384);o+=d[4]*16384;
+ if(d[5]){chr=d.slice(o,o+d[5]*8192);chrRam=false}else{chr=new Uint8Array(8192);chrRam=true}
+ mir=(d[6]&1)^1;prgRam.fill(0);ram.fill(0);nt.fill(0);pal.fill(0);oam.fill(0);br=[0,2,4,5,6,7,0,1];bsel=0;iFlag=iEn=iCnt=iLat=iRel=0;
+ ctrl=mask=status=v=t=w=oa=fX=rbuf=0;pad=sh=strobe=0;A=X=Y=0;S=0xfd;P=0x34;cyc=tot=0;nmi=0;sync();pc=rd(0xfffc)|rd(0xfffd)<<8;resetAPU();last=0;elapsed=0;run=true;paused=false;$('#pause').disabled=$('#restart').disabled=false;$('#pause').textContent='Pausar';$('#pauseNotice').style.display='none';$('#loadError').textContent='';$('#msg').style.display='none';cv.focus({preventScroll:true})}
+let loadSequence=0;
+async function loadFile(f){const seq=++loadSequence;run=false;pad=0;clearAudio();$('#gameLabel').textContent='Cargando…';await enableAudio();try{
+ if(f.size>32*1024*1024)throw Error('El archivo es demasiado grande (máximo 32 MB)');
+ const buf=await getNes(await f.arrayBuffer());if(seq!==loadSequence)return;boot(buf);loadedROM=buf.slice(0);$('#gameLabel').textContent=f.name;
+ }catch(e){if(seq!==loadSequence)return;run=false;clearAudio();$('#pause').disabled=$('#restart').disabled=true;$('#pauseNotice').style.display='none';$('#msg').style.display='flex';$('#loadError').textContent='No se pudo cargar: '+e.message;$('#gameLabel').textContent='Elegí otro archivo';}finally{if(seq===loadSequence)$('#f').value=''}}
+function togglePause(){if(!loadedROM||$('#pause').disabled)return;paused=!paused;run=!paused;pad=0;clearAudio();last=elapsed=0;$('#pause').textContent=paused?'Continuar':'Pausar';$('#pauseNotice').style.display=paused?'flex':'none';if(!paused){enableAudio();cv.focus({preventScroll:true})}}
+/* ---------- WebGL ---------- */
+const cv=$('#c'),gl=cv.getContext('webgl',{alpha:false,antialias:false});let run=false;
+if(!gl){$('#loadError').textContent='WebGL no está disponible. Activá la aceleración gráfica del navegador y recargá la página.';$('#start').disabled=true;throw Error('WebGL no disponible')}
+const vsS="attribute vec2 a;varying vec2 u;void main(){u=a*.5+.5;u.y=1.-u.y;gl_Position=vec4(a,0,1);}";
+const fsS=`precision highp float;
+uniform sampler2D t;uniform vec2 r;uniform float m;varying vec2 u;
+vec3 at(vec2 p){return texture2D(t,(clamp(p,vec2(0.),vec2(255.,239.))+.5)/vec2(256.,240.)).rgb;}
+float difference(vec3 a,vec3 b){vec3 d=abs(a-b);return dot(d,vec3(.299,.587,.114));}
+bool same(vec3 a,vec3 b){return difference(a,b)<.035;}
+vec3 edge(vec2 p){
+ vec2 cell=floor(p),f=fract(p);
+ vec3 E=at(cell),B=at(cell+vec2(0.,-1.)),D=at(cell+vec2(-1.,0.)),F=at(cell+vec2(1.,0.)),H=at(cell+vec2(0.,1.));
+ vec3 a=E,b=E,c=E,d=E;
+ if(!same(B,H)&&!same(D,F)){
+  if(same(D,B))a=(D+B)*.5;
+  if(same(B,F))b=(B+F)*.5;
+  if(same(D,H))c=(D+H)*.5;
+  if(same(H,F))d=(H+F)*.5;
+ }
+ vec2 z=smoothstep(vec2(.1),vec2(.9),f);
+ return mix(mix(a,b,z.x),mix(c,d,z.x),z.y);
+}
+float cubic(float x){x=abs(x);if(x<1.)return 1.5*x*x*x-2.5*x*x+1.;if(x<2.)return -.5*x*x*x+2.5*x*x-4.*x+2.;return 0.;}
+vec3 bicubic(vec2 p){
+ vec2 q=p-.5,base=floor(q),f=fract(q);vec3 total=vec3(0.);float weight=0.;
+ for(int y=-1;y<=2;y++){for(int x=-1;x<=2;x++){
+  float w=cubic(float(x)-f.x)*cubic(float(y)-f.y);total+=at(base+vec2(float(x),float(y)))*w;weight+=w;
+ }}return clamp(total/weight,0.,1.);
+}
+void main(){
+ vec2 p=u*vec2(256.,240.),f=fract(p);vec3 c;
+ if(m<.5)c=at(floor(p));
+ else if(m>3.5){vec3 smoothColor=texture2D(t,u).rgb;c=mix(bicubic(p),smoothColor,.65);}
+ else if(m>2.5){c=mix(edge(p),texture2D(t,u).rgb,.2);}
+ else{float S=max(r.x/256.,1.);f=clamp((f-.5)*S+.5,0.,1.);c=texture2D(t,(floor(p)+f)/vec2(256.,240.)).rgb;}
+ if(m>1.5&&m<2.5){float d=abs(fract(p.y)-.5)*2.;c*=1.-.45*d*d;c*=1.-.12*step(1.5,mod(gl_FragCoord.x,3.));vec2 q=u-.5;c*=1.-1.3*dot(q,q);c=pow(c,vec3(.9))*1.12;}
+ gl_FragColor=vec4(c,1.);
+}`;
+function sh_(ty,s){const o=gl.createShader(ty);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw Error("No se pudo compilar el filtro gráfico: "+gl.getShaderInfoLog(o));return o}
+const pg=gl.createProgram();gl.attachShader(pg,sh_(gl.VERTEX_SHADER,vsS));gl.attachShader(pg,sh_(gl.FRAGMENT_SHADER,fsS));gl.linkProgram(pg);if(!gl.getProgramParameter(pg,gl.LINK_STATUS))throw Error("No se pudo iniciar el filtro gráfico");gl.useProgram(pg);
+const bf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,bf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+const al=gl.getAttribLocation(pg,"a");gl.enableVertexAttribArray(al);gl.vertexAttribPointer(al,2,gl.FLOAT,false,0,0);
+const tx=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tx);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,256,240,0,gl.RGBA,gl.UNSIGNED_BYTE,px8);
+const uR=gl.getUniformLocation(pg,"r"),uM=gl.getUniformLocation(pg,"m");
+let viewportWidth=0,viewportHeight=0;
+function fit(){
+ const selected=$('#res').value;let width,height;
+ if(selected==='auto'){const d=Math.min(window.devicePixelRatio||1,2);width=Math.min(2560,Math.max(320,Math.round(cv.clientWidth*d)));height=Math.round(width*9/16)}
+ else{height=Number(selected);width=Math.round(height*16/9)}
+ const max=gl.getParameter(gl.MAX_VIEWPORT_DIMS),maxTex=gl.getParameter(gl.MAX_RENDERBUFFER_SIZE);
+ const scale=Math.min(1,max[0]/width,max[1]/height,maxTex/width,maxTex/height);
+ cv.width=Math.floor(width*scale);cv.height=Math.floor(height*scale);
+ const aspect=$('#aspect').value,ratio=aspect==='native'?256/240:aspect==='wide'?16/9:4/3;
+ viewportWidth=Math.min(cv.width,Math.round(cv.height*ratio));viewportHeight=Math.min(cv.height,Math.round(cv.width/ratio));
+ gl.viewport(Math.floor((cv.width-viewportWidth)/2),Math.floor((cv.height-viewportHeight)/2),viewportWidth,viewportHeight);
+ $('#videoStatus').textContent='Salida '+cv.width+' × '+cv.height+' · Imagen '+viewportWidth+' × '+viewportHeight+' · '+$('#m').selectedOptions[0].textContent;
+ draw();
+}
+function draw(){gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,256,240,gl.RGBA,gl.UNSIGNED_BYTE,px8);
+ gl.uniform2f(uR,viewportWidth,viewportHeight);gl.uniform1f(uM,+$('#m').value);gl.drawArrays(gl.TRIANGLE_STRIP,0,4)}
+addEventListener('resize',fit);addEventListener('fullscreenchange',fit);addEventListener('webkitfullscreenchange',fit);
+$('#res').onchange=fit;$('#aspect').onchange=fit;$('#m').onchange=fit;fit();
+/* ---------- bucle y entrada ---------- */
+let last=0,elapsed=0;const FRAME_MS=1000/(CPU_HZ/(262*341/3));
+function loop(ts){requestAnimationFrame(loop);if(!run||document.hidden){last=ts;elapsed=0;return}if(!last){last=ts;return}elapsed+=Math.min(ts-last,80);last=ts;let count=0;while(elapsed>=FRAME_MS&&count++<5){frame();elapsed-=FRAME_MS}if(count)draw()}requestAnimationFrame(loop);
+$('#audioOn').onclick=enableAudio;
+$('#sound').onchange=audioProfile;$('#vol').oninput=audioProfile;
+$('#mute').onclick=()=>{muted=!muted;$('#mute').textContent=muted?'Restaurar audio':'Silenciar';$('#mute').setAttribute('aria-pressed',String(muted));audioProfile()};
+addEventListener('visibilitychange',()=>{pad=0;last=0;elapsed=0;clearAudio();if(audio){if(document.hidden)audio.suspend();else enableAudio()}});
+addEventListener('blur',()=>pad=0);
+$('#start').onclick=()=>$('#f').click();$('#pause').onclick=togglePause;$('#restart').onclick=()=>{if(loadedROM){boot(loadedROM);enableAudio()}};
+for(const button of document.querySelectorAll('[data-pad]')){
+ const bit=Number(button.dataset.pad);button.addEventListener('pointerdown',e=>{e.preventDefault();button.setPointerCapture(e.pointerId);pad|=bit;if(audio&&audio.state!=='running')enableAudio()});
+ const release=()=>pad&=~bit;button.addEventListener('pointerup',release);button.addEventListener('pointercancel',release);button.addEventListener('lostpointercapture',release);
+}
+const KM={ArrowRight:128,ArrowLeft:64,ArrowDown:32,ArrowUp:16,Enter:8,ShiftLeft:4,ShiftRight:4,KeyZ:2,KeyX:1};
+addEventListener("keydown",e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;if(e.code==='KeyP'&&!e.repeat){togglePause();e.preventDefault();return}if(KM[e.code]){if(audio&&audio.state!=="running")enableAudio();pad|=KM[e.code];e.preventDefault()}});
+addEventListener("keyup",e=>{if(KM[e.code]){pad&=~KM[e.code];e.preventDefault()}});
+$("#f").onchange=e=>e.target.files[0]&&loadFile(e.target.files[0]);
+addEventListener("dragover",e=>e.preventDefault());
+addEventListener("drop",e=>{e.preventDefault();e.dataTransfer.files[0]&&loadFile(e.dataTransfer.files[0])});
+$("#u").onchange=e=>unl=e.target.checked?1:0;
+$('#fs').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if($('#w').requestFullscreen)await $('#w').requestFullscreen();else if($('#w').webkitRequestFullscreen)$('#w').webkitRequestFullscreen();else $('#videoStatus').textContent='Usá el botón verde de la ventana para ampliar el navegador';fit()}catch(e){$('#videoStatus').textContent='No se pudo activar pantalla completa: '+e.message}};
+</script></body></html>
